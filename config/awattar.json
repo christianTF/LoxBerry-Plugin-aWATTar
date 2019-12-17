@@ -3,7 +3,8 @@
 		"country": "DE",
 		"url": "https://api.awattar.de/v1/marketdata",
 		"user": "",
-		"pass": ""
+		"pass": "",
+		"pricemodifier": ""
 	},
 	"adviser": {
 		"Waschmaschine": {

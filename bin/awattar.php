@@ -377,7 +377,7 @@ function mqtt_send()
 			// LOGDEB("   $fulltopic = $value");
 			$mqtt->publish($fulltopic, $value, 0, 1);
 		}
-		LOGOK("MQTT plublishing finished");
+		LOGOK("MQTT publishing finished");
 		$mqtt->close();
 	} else {
 		LOGCRIT("Could not connect to MQTT Broker");

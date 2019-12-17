@@ -30,6 +30,15 @@ $mqttconfigfile = LBPCONFIGDIR . "/mqtt.json";
 $log = LBLog::newLog( [ "name" => "Price Processor", "loglevel"=> 7, "stderr" => 1 ] );
 LOGSTART("Price processing");
 
+// Commandline options
+$longopts = array( "delay:" );
+$options = getopt("", $longopts);
+if(!empty($options['delay'])) {
+	LOGINF("Startup delay of " . $options['delay'] . " seconds requested by option --delay (usually from cronjob)...");
+	sleep($options['delay']);
+	LOGOK("Continuing startup after delay.");
+}
+
 $result_dataset = array();
 
 // $countries = array ( "AT" => "",
@@ -77,11 +86,11 @@ function get_pricing($dataurl, $pricefile)
 		$data = file_get_contents($pricefile);
 	}
 	
-	$result_dataset['date']['now'] = date('Y-m-d h:m', time());
+	$result_dataset['date']['now'] = date('Y-m-d H:m', time());
 	$result_dataset['date']['now_epoch'] = time();
 	$result_dataset['date']['now_loxtime'] = epoch2lox();
 	$filemtime = filemtime($pricefile);
-	$result_dataset['date']['fetch'] = date('Y-m-d h:m', $filemtime);
+	$result_dataset['date']['fetch'] = date('Y-m-d H:m', $filemtime);
 	$result_dataset['date']['fetch_epoch'] = $filemtime;
 	$result_dataset['date']['fetch_loxtime'] = epoch2lox($filemtime);
 	$result_dataset['date']['weekday'] = date('w');
@@ -140,7 +149,7 @@ function price_stats($pricing)
 			$currentprice = $price->marketprice;
 		}
 		LOGDEB(date('H:i', $price->start_timestamp/1000) . " " . $price->marketprice);
-		$result_dataset['prices']['hour_'. date('G', $price->start_timestamp/1000) ] = $price->marketprice;
+		$result_dataset['prices']['hour_'. date('H', $price->start_timestamp/1000) ] = $price->marketprice;
 			
 		// Save marketprice in an array to sort it later
 		$price_arr[date('G', $price->start_timestamp/1000)] = $price->marketprice;
@@ -160,7 +169,7 @@ function price_stats($pricing)
 
 	sort($price_arr);
 
-	LOGINF("Current hour is " . date('H', intval($currenthour_e)) . " (epoch $currenthour_e)");
+	LOGINF("Current hour is " . date('H', intval($currenthour_e/1000)) . " (epoch $currenthour_e)");
 	LOGINF("Current price is $currentprice");
 	$averageprice = $helper_total/$helper_count;
 	LOGINF("Average price is $averageprice");
@@ -182,7 +191,7 @@ function price_stats($pricing)
 	}	
 	LOGINF("Current Price ranking: $price_ranking. lowest price");
 
-	$result_dataset['price']['hour'] = date('H', intval($currenthour_e));
+	$result_dataset['price']['hour'] = date('H', intval($currenthour_e/1000));
 	$result_dataset['price']['current'] = $currentprice;
 	$result_dataset['price']['average'] = $averageprice;
 	$result_dataset['price']['median'] = $medianprice;
@@ -212,7 +221,7 @@ function calc_advice($pricing, $adv_name, $adv_obj)
 {
 	global $cfg, $result_dataset, $currenthour_e;
 	
-	$currenthour = date('H', intval($currenthour_e));
+	$currenthour = date('H', intval($currenthour_e/1000));
 	
 	$dur = $adv_obj->duration;
 	
@@ -277,6 +286,7 @@ function calc_advice($pricing, $adv_name, $adv_obj)
 	$result_dataset['advise'][$adv_name]['low_hour'] = key($adv_lowest);
 	$result_dataset['advise'][$adv_name]['low_in'] = (key($adv_lowest)-date('H'));
 	$result_dataset['advise'][$adv_name]['low_price_avg'] = $adv_lowest[key($adv_lowest)];
+	echo "DEBUG: $currenthour // " . key($adv_lowest) . "\n";
 	if( $currenthour >= key($adv_lowest) and $currenthour <= (key($adv_lowest)+$dur-1) ) {
 		LOGINF("Cheapest phase: CURRENTLY CHEAPEST");
 		$result_dataset['advise'][$adv_name]['low_price_active'] = "1";
@@ -364,7 +374,7 @@ function mqtt_send()
 		$flat_array = flatten($result_dataset);
 		foreach($flat_array as $topic => $value) {
 			$fulltopic = $basetopic . "/" . $topic;
-			LOGDEB("   $fulltopic = $value");
+			// LOGDEB("   $fulltopic = $value");
 			$mqtt->publish($fulltopic, $value, 0, 1);
 		}
 		LOGOK("MQTT plublishing finished");

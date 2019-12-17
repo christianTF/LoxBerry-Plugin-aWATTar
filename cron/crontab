@@ -1,0 +1,7 @@
+SHELL=/bin/sh
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+MAILTO=""
+#
+# m h dom mon dow user  command
+@reboot loxberry REPLACELBPBINDIR/awattar.php --delay 60 > /dev/null 2>&1
+0 * * * * loxberry REPLACELBPBINDIR/awattar.php --delay 10 > /dev/null 2>&1

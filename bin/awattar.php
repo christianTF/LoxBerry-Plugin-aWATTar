@@ -73,7 +73,15 @@ exit(0);
 function get_pricing($dataurl, $pricefile)
 {
 	global $result_dataset;
-	if( !file_exists($pricefile) or filemtime($pricefile) < time()-60*60 ) {
+	
+	$curr_date = date('Y-m-d', time());
+	$modified = filemtime($pricefile);
+	if(!empty($modified)) { 
+		$modified_date = date('Y-m-d', $modified);
+	}
+		
+	
+	if( !file_exists($pricefile) or $curr_date != $modified_date ) {
 		LOGINF("Getting data from API...");
 		$starttime = strtotime( date('Y-m-d', time()) );
 		$endtime = $starttime + 24*60*60;

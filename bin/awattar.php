@@ -21,11 +21,7 @@ function shutdown()
 
 require_once "loxberry_system.php";
 require_once "loxberry_log.php";
-
-$configfile = LBPCONFIGDIR . "/awattar.json";
-$pricefile = "/tmp/awattar_pricedata.json";
-$resultfile = "/tmp/awattar_resultdata.json";
-$mqttconfigfile = LBPCONFIGDIR . "/mqtt.json";
+require_once LBPBINDIR . "/defines.php";
 
 $log = LBLog::newLog( [ "name" => "Price Processor", "loglevel"=> 7, "stderr" => 1 ] );
 LOGSTART("Price processing");

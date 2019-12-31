@@ -37,18 +37,19 @@ if(!empty($options['delay'])) {
 
 $result_dataset = array();
 
-// $countries = array ( "AT" => "",
-					 // "DE" => "https://api.awattar.de/v1/marketdata"
-// );
+$countries = array ( "AT" => "https://api.awattar.com/v1/marketdata",
+					 "DE" => "https://api.awattar.de/v1/marketdata"
+);
 
 LOGINF("Reading config file $configfile");
 $cfg = json_decode(file_get_contents($configfile));
 
 LOGINF("Country: " . $cfg->general->country);
-
+$cfg->general->url = $countries[ $cfg->general->country ];
+$cfg->general->token = isset($cfg->general->token) ? $cfg->general->token : null;
 $currenthour_e = strtotime( date('Y-m-d H:00', time()) ) . "000";
 
-$pricing = get_pricing($cfg->general->url, $pricefile);
+$pricing = get_pricing($cfg->general->url, $cfg->general->token, $pricefile);
 if(empty($pricing)) {
 	LOGCRIT("Could not query valid price data");
 	exit(1);
@@ -66,7 +67,7 @@ mqtt_send();
 
 exit(0);
 
-function get_pricing($dataurl, $pricefile)
+function get_pricing($dataurl, $token, $pricefile)
 {
 	global $result_dataset;
 	
@@ -82,7 +83,8 @@ function get_pricing($dataurl, $pricefile)
 		$starttime = strtotime( date('Y-m-d', time()) );
 		$endtime = $starttime + 24*60*60;
 		LOGDEB("Start-End: $starttime - $endtime");
-		$data = file_get_contents($dataurl."?start=".$starttime."000&end=".$endtime."000");
+		$data = curl_download( $dataurl."?start=".$starttime."000&end=".$endtime."000", $token );
+		// $data = file_get_contents($dataurl."?start=".$starttime."000&end=".$endtime."000");
 		LOGDEB("Writing result to $pricefile");
 		file_put_contents( $pricefile, $data );
 	} else {
@@ -399,4 +401,24 @@ function flatten($array, $prefix = '') {
         }
     }
     return $result;
+}
+
+function curl_download ( $url, $token ) 
+{
+	$handle = curl_init();
+	 
+	// Set the url
+	curl_setopt($handle, CURLOPT_URL, $url);
+	// Set the result output to be a string.
+	curl_setopt($handle, CURLOPT_RETURNTRANSFER, true);
+	if(!empty($token)) {
+		curl_setopt($handle, CURLOPT_HTTPHEADER, array("Authorization: Bearer $token"));
+	}
+	$output = curl_exec($handle);
+	 
+	curl_close($handle);
+	 
+	return $output;	
+	
+	
 }

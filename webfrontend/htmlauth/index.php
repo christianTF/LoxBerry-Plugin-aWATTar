@@ -64,7 +64,7 @@ $mqtt_installed = LBSystem::plugindata('mqttgateway') ? true : false;
 <!-- Form SETTINGS -->
 <form id="form" onsubmit="return false;">
 
-<!-- My ZE Online -->
+<!-- aWATTar -->
 
 <div class="wide">aWATTar</div>
 &nbsp;
@@ -75,7 +75,7 @@ $mqtt_installed = LBSystem::plugindata('mqttgateway') ? true : false;
 	</div>
 	<div	class="lb_flex-item-spacer"></div>
 	<div	class="lb_flex-item">
-		<select name="CONFIG.country" id="country">
+		<select name="CONFIG.general.country" id="country">
 	        <option value="AT">Österreich</option>
 	        <option value="DE">Deutschland</option>
 	    </select>
@@ -95,11 +95,31 @@ $mqtt_installed = LBSystem::plugindata('mqttgateway') ? true : false;
 	</div>
 	<div	class="lb_flex-item-spacer"></div>
 	<div	class="lb_flex-item">
-		<input name="CONFIG.token" id="token">
+		<input name="CONFIG.general.token" id="token">
 	</div>
 	<div	class="lb_flex-item-spacer"></div>
 	<div	class="lb_flex-item-help hint">
 		Für den Abruf der Daten in Österreich ist ein Zugangstoken erforderlich. Kontaktiere dafür service@awattar.com. Zum Probieren und Einrichten kannst du vorerst auch "Deutschland" auswählen. Die Datenfelder des Plugins sind identisch.
+	</div>
+	<div	class="lb_flex-item-spacer"></div>
+</div>
+
+<div class="lb_flex-container">
+	<div	class="lb_flex-item-label">
+		<label for="pricemodifier">Preisanpassung</label>
+	</div>
+	<div	class="lb_flex-item-spacer"></div>
+	<div	class="lb_flex-item">
+		<input name="CONFIG.general.pricemodifier" id="pricemodifier">
+	</div>
+	<div	class="lb_flex-item-spacer"></div>
+	<div	class="lb_flex-item-help hint">
+		Die Preise von aWATTar sind in cent/kWh exkl. Steuern. Du kannst eine Formel angeben, um den Preis anzupassen, z.B. um die Netzgebühren zu addieren, und/oder die Preise inkl. Mwst. anzugeben.<br>
+		Verwende den Buchstaben <span class="mono">p</span> als Variable für den Preis.<br>
+		Beispiel: <span class="mono">(p+7.5)*1.2</span><br>
+		Beachte: Kommatrennzeichen ist der Punkt!
+		
+		
 	</div>
 	<div	class="lb_flex-item-spacer"></div>
 </div>
@@ -345,10 +365,17 @@ function formFill()
 	// Country selection
 	if (typeof config.general.country !== 'undefined') $("#country").val( config.general.country ).attr('selected', true).siblings('option').removeAttr('selected');
 	$("#country").selectmenu("refresh", true);
-		
+	
+	// Token
+	if (typeof config.general.token !== 'undefined') $("#token").val( config.general.token );
+	
+	// Price modifier
+	if (typeof config.general.pricemodifier !== 'undefined') $("#pricemodifier").val( config.general.pricemodifier );
+
+	
 	if( typeof mqttconfig !== 'undefined') {
 		if (typeof mqttconfig.usemqttgateway !== 'undefined') {
-			if( mqttconfig.usemqttgateway == 'true' ) 
+			if( mqttconfig.usemqttgateway == 'true' || mqttconfig.usemqttgateway == 'on' ) 
 				$("#MQTTUseMQTTGateway").prop('checked', mqttconfig.usemqttgateway).checkboxradio('refresh');
 		}
 		if (typeof mqttconfig.topic !== 'undefined') $("#MQTTTopic").val( mqttconfig.topic );
@@ -371,7 +398,10 @@ function saveapply()
 		$("#savemessages").html("Saved successfully");
 		$("#savemessages").css("color", "green");
 		
-		config = data;
+		console.log("Response data", data);
+		config = data.CONFIG;
+		mqttconfig = data.MQTT;
+		
 		formFill();
 	})
 	.fail(function( error, textStatus, errorThrown ) {

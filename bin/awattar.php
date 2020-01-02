@@ -45,6 +45,10 @@ LOGINF("Reading config file $configfile");
 $cfg = json_decode(file_get_contents($configfile));
 
 LOGINF("Country: " . $cfg->general->country);
+
+// Add country suffix to pricefile
+$pricefile = $pricefile.'_'.$cfg->general->country;
+
 $cfg->general->url = $countries[ $cfg->general->country ];
 $cfg->general->token = isset($cfg->general->token) ? $cfg->general->token : null;
 $currenthour_e = strtotime( date('Y-m-d H:00', time()) ) . "000";
@@ -72,19 +76,40 @@ function get_pricing($dataurl, $token, $pricefile)
 	global $result_dataset;
 	
 	$curr_date = date('Y-m-d', time());
-	$modified = filemtime($pricefile);
+	if(file_exists($pricefile)) {
+		$modified = filemtime($pricefile);
+	}
 	if(!empty($modified)) { 
 		$modified_date = date('Y-m-d', $modified);
 	}
 		
 	
 	if( !file_exists($pricefile) or $curr_date != $modified_date ) {
+		if(file_exists($pricefile)) {
+			unlink($pricefile);
+		}
 		LOGINF("Getting data from API...");
 		$starttime = strtotime( date('Y-m-d', time()) );
 		$endtime = $starttime + 24*60*60;
 		LOGDEB("Start-End: $starttime - $endtime");
 		$data = curl_download( $dataurl."?start=".$starttime."000&end=".$endtime."000", $token );
-		// $data = file_get_contents($dataurl."?start=".$starttime."000&end=".$endtime."000");
+
+		// Checking data
+		$dataobj = json_decode($data);
+		if ( empty($dataobj) ) {
+			LOGCRIT("Dataset is empty or result json is invalid");
+			LOGERR("Response from aWATTar API: [");
+			LOGERR("<<< " . $data . " >>>");
+			exit(1);
+		} elseif ( isset($dataobj->error) ) {
+			LOGCRIT("aWATTar explicitely returned error <<< " . $dataobj->error->type . " >>>");
+			LOGERR("<<< " . $dataobj->error->message . " >>>");
+			exit(1);
+		}
+		
+		
+		// DOTO: Parse data; get timestamp of data. If old timestamp, do not save file
+		
 		LOGDEB("Writing result to $pricefile");
 		file_put_contents( $pricefile, $data );
 	} else {

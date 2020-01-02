@@ -75,7 +75,7 @@
                 ]
             ]
         },
-        "Geschirrsp\u00fcler": {
+        "Geschirrspüler": {
             "duration": 3,
             "excludes": [
                 [
@@ -154,6 +154,6 @@
     "general": {
         "country": "DE",
         "token": "",
-        "pricemodifier": "p*1.2"
+        "pricemodifier": "p*1.19"
     }
 }

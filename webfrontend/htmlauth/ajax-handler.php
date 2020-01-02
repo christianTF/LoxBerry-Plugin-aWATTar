@@ -4,42 +4,53 @@ require_once "loxberry_system.php";
 require_once LBPBINDIR . "/defines.php";
 
 if( isset($_GET["action"]) && $_GET["action"] == "saveconfig" ) {
+	
+	$cfg = json_decode( file_get_contents($configfile) );
+	$mqttcfg = json_decode( file_get_contents($mqttconfigfile) );
+	
 	$data = array();
 	foreach( $_POST as $key => $value ) {
 		// PHP's $_POST converts dots of post variables to underscores
-		$data = generateNew($data, explode("_", $key), 0, $value);
-	}
-	
-	error_log("POST data:\n" . var_export($data, true));
-	
-	$cfg = json_decode( file_get_contents($configfile), true );
-	
-	if( isset($data['CONFIG']['general']) ) {
-		// If general data are submitted by POST, delete 'general' tree in current config
-		unset($cfg['general']);
-	}
+		// $data = generateNew($data, explode("_", $key), 0, $value);
 		
-	$cfg = array_merge($cfg, $data['CONFIG']);
+		$tree = explode("_", $key);
+		if( $tree[0] == 'CONFIG' ) {
+			// Changing base config
+			$forkobj = $cfg;
+		} elseif ( $tree[0] == 'MQTT' ) {
+			// Changing mqtt config
+			$forkobj = $mqttcfg;
+		}
+		
+		// Only set values if $forkobj really exists
+		if( is_object($forkobj) ) {		
+			for ( $fork = 1; $fork < count($tree)-1; $fork++ ) {
+				error_log("fork $fork is " . $tree[$fork]);
+				if( !is_object($forkobj->{$tree[$fork]}) ) {
+					// Tree element does not exist
+					error_log("Initializing class for " . $tree[$fork]);
+					$forkobj->{$tree[$fork]} = new stdClass;
+				}
+				$forkobj = $forkobj->{$tree[$fork]};
+			}
+			error_log("Writing to " . $tree[count($tree)-1] . " value " . $value);
+			$forkobj->{$tree[count($tree)-1]} = $value;
+			unset($forkobj);
+		}	
+	}
 	
-	// error_log("MERGED data:\n" . var_export($cfg, true));
+	error_log("cfg data now:\n" . var_export($cfg, true));
+	error_log("mqtt data now:\n" . var_export($mqttcfg, true));
 	
 	file_put_contents( $configfile, json_encode($cfg, JSON_PRETTY_PRINT) );
-	file_put_contents( $mqttconfigfile, json_encode($data['MQTT'], JSON_PRETTY_PRINT) );
+	file_put_contents( $mqttconfigfile, json_encode($mqttcfg, JSON_PRETTY_PRINT) );
 	
-	$jsonstr = json_encode( array( 'CONFIG' => $cfg, 'MQTT' => $data['MQTT']), JSON_PRETTY_PRINT );
-	// $jsonstr = json_encode($data, JSON_PRETTY_PRINT);
-	// DEBUG
+	// Run aWATTar script
+	shell_exec("php " . LBPBINDIR."/awattar.php");
+	
+	$jsonstr = json_encode( array( 'CONFIG' => $cfg, 'MQTT' => $mqttcfg));
 	sendresponse( 200, "application/json", $jsonstr );
 	
-	// if($jsonstr) {
-		// if ( file_put_contents( $configfile , $jsonstr ) == false ) {
-			// sendresponse( 500, "application/json", '{ "error" : "Could not write config file" }' );
-		// } else {
-			// sendresponse ( 200, "application/json", file_get_contents(CONFIGFILE) );
-		// }
-	// } else {
-		// sendresponse( 500, "application/json", '{ "error" : "Submitted data are not valid json" }' );
-	// }
 	exit(1);
 }
 
@@ -99,12 +110,6 @@ function generateNew($array, $keys, $currentIndex, $value)
 
         return $array;
     }
-
-
-
-
-
-
 
 
 function sendresponse( $httpstatus, $contenttype, $response = null )

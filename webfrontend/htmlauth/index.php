@@ -392,7 +392,21 @@ function saveapply()
 	$("#savemessages").html("Submitting...");
 	$("#savemessages").css("color", "grey");
 	
-	$.post( "ajax-handler.php?action=saveconfig", $( "#form" ).serialize() )
+	// Handle checkboxes: If checkbox is disabled, 
+	/* Get input values from form */
+	values = $("#form").serializeArray();
+
+	/* Because serializeArray() ignores unset checkboxes and radio buttons: */
+	values = values.concat(
+        $('#form input[type=checkbox]:not(:checked)').map(
+				function() {
+					// console.log("Checkbox", this.name, "Value", this.value);
+                    return {"name": this.name, "value": "off"}
+                }).get()
+		);	
+	
+	//$.post( "ajax-handler.php?action=saveconfig", $( "#form" ).serialize() )
+	$.post( "ajax-handler.php?action=saveconfig", values )
 	.done(function( data ) {
 		console.log("Done:", data);
 		$("#savemessages").html("Saved successfully");

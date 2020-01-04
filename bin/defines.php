@@ -5,6 +5,9 @@ $pricefile = "/tmp/awattar_pricedata.json";
 $resultfile = "/tmp/awattar_resultdata.json";
 $mqttconfigfile = LBPCONFIGDIR . "/mqtt.json";
 
+// Constants
+// const WEEKDAY = array("Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag");
+const WEEKDAY = array("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday");
 
 // The Navigation Bar
 $navbar[1]['Name'] = "Einstellungen";

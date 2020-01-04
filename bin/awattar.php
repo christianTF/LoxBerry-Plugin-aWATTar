@@ -60,9 +60,8 @@ if(empty($pricing)) {
 } else {
 	LOGOK("Price data queried successfully");
 }
+
 $pricing = prepare_prices($pricing);
-
-
 price_stats($pricing);
 calc_advises($pricing);
 
@@ -71,6 +70,9 @@ mqtt_send();
 
 exit(0);
 
+//
+// Read price data from API or file
+//
 function get_pricing($dataurl, $token, $pricefile)
 {
 	global $result_dataset;
@@ -83,7 +85,6 @@ function get_pricing($dataurl, $token, $pricefile)
 		$modified_date = date('Y-m-d', $modified);
 	}
 		
-	
 	if( !file_exists($pricefile) or $curr_date != $modified_date ) {
 		if(file_exists($pricefile)) {
 			unlink($pricefile);
@@ -107,7 +108,6 @@ function get_pricing($dataurl, $token, $pricefile)
 			exit(1);
 		}
 		
-		
 		// DOTO: Parse data; get timestamp of data. If old timestamp, do not save file
 		
 		LOGDEB("Writing result to $pricefile");
@@ -126,11 +126,13 @@ function get_pricing($dataurl, $token, $pricefile)
 	$result_dataset['date']['fetch_loxtime'] = epoch2lox($filemtime);
 	$result_dataset['date']['weekday'] = date('w');
 	
-	
 	return json_decode($data);
 
 }
 
+//
+// Change price from MWh to kWh, and apply price modifier
+//
 function prepare_prices($pricing) 
 {
 	global $cfg;
@@ -160,8 +162,12 @@ function prepare_prices($pricing)
 		}
 	}
 	return $pricing;
+
 }
 
+//
+// Calculate average, median, highest, lowest, thresholds
+//
 function price_stats($pricing)
 {
 	global $result_dataset, $currenthour_e;
@@ -232,41 +238,54 @@ function price_stats($pricing)
 
 }
 
-
+// 
+// Run through all Advicer devices
+//
 function calc_advises($pricing) 
 {
 	global $cfg;
 	$advises = array ();
-	//echo var_dump($cfg->adviser) . "\n";
-	//echo "Waschmaschine: " . $cfg->adviser->Waschmaschine->duration . "\n";
-	//echo $cfg->adviser . "\n";
 	
-	foreach($cfg->adviser as $adv_name => $adv_obj) {
-		LOGINF("Advise Settings for " . $adv_name);
-		calc_advice($pricing, $adv_name, $adv_obj);
+	foreach($cfg->adviser as $deviceUid => $deviceObj) {
+		LOGINF("Advise Settings for " . $deviceUid . " (" . $deviceObj->devicename . ")");
+		calc_advice($pricing, $deviceUid, $deviceObj);
 	}
 	
 }	
 
-function calc_advice($pricing, $adv_name, $adv_obj) 
+//
+// Calculate advises for a specific device
+//
+function calc_advice($pricing, $deviceUid, $deviceObj) 
 {
 	global $cfg, $result_dataset, $currenthour_e;
 	
 	$currenthour = date('H', intval($currenthour_e/1000));
 	
-	$dur = $adv_obj->duration;
+	$adv_name = $deviceObj->devicename;
+	$dur = $deviceObj->deviceduration;
 	
 	$result_dataset['advise'][$adv_name]['device'] = $adv_name;
+	$result_dataset['advise'][$adv_name]['deviceuid'] = $deviceUid;
 	$result_dataset['advise'][$adv_name]['duration'] = $dur;
 	
 	$weekday = date('w');
-	$excludes = $adv_obj->excludes->$weekday;
-	LOGINF("Today is $weekday. Todays excludes: " . join(" ", $excludes));
+	
+	// Convert exclude properties to array
+	$excludeObj = $deviceObj->excludes->$weekday;
+	$excludes = array();
+	foreach( $excludeObj as $hour => $value ) {
+		if( is_enabled($value) ) {
+			array_push($excludes, $hour);
+		}
+	}
+	
+	LOGINF("Today is " . WEEKDAY[$weekday] . " ($weekday). Excluded hours: " . join(" ", $excludes));
 	
 	LOGDEB("Elements in price list: " . count((array)$pricing->data));
 	
 	$adv_lowest = null;
-	$adv_lowest = array ();
+	$adv_lowest = array();
 	
 	for ($i = 0; $i < count((array)$pricing->data); $i++) {
 		$priceobj = $pricing->data[$i];
@@ -444,6 +463,5 @@ function curl_download ( $url, $token )
 	curl_close($handle);
 	 
 	return $output;	
-	
 	
 }

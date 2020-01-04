@@ -3,12 +3,11 @@
 require_once "loxberry_system.php";
 require_once LBPBINDIR . "/defines.php";
 
+$cfg = json_decode( file_get_contents($configfile) );
+$mqttcfg = json_decode( file_get_contents($mqttconfigfile) );
+
 if( isset($_GET["action"]) && $_GET["action"] == "saveconfig" ) {
 	
-	$cfg = json_decode( file_get_contents($configfile) );
-	$mqttcfg = json_decode( file_get_contents($mqttconfigfile) );
-	
-	$data = array();
 	foreach( $_POST as $key => $value ) {
 		// PHP's $_POST converts dots of post variables to underscores
 		// $data = generateNew($data, explode("_", $key), 0, $value);
@@ -39,8 +38,8 @@ if( isset($_GET["action"]) && $_GET["action"] == "saveconfig" ) {
 		}	
 	}
 	
-	error_log("cfg data now:\n" . var_export($cfg, true));
-	error_log("mqtt data now:\n" . var_export($mqttcfg, true));
+	// error_log("cfg data now:\n" . var_export($cfg, true));
+	// error_log("mqtt data now:\n" . var_export($mqttcfg, true));
 	
 	file_put_contents( $configfile, json_encode($cfg, JSON_PRETTY_PRINT) );
 	file_put_contents( $mqttconfigfile, json_encode($mqttcfg, JSON_PRETTY_PRINT) );
@@ -54,62 +53,79 @@ if( isset($_GET["action"]) && $_GET["action"] == "saveconfig" ) {
 	exit(1);
 }
 
-if ( isset($_GET["action"]) && $_GET["action"] == "getsummary" ) {
-	shell_exec("php $lbphtmlauthdir/ze.php action=summary");
-	if ( ! file_exists(LOGINFILE) ) {
-		sendresponse ( 500, "application/json", '{ "error" : "Could not query summary" }' );
-	}
-	sendresponse ( 200, "application/json", file_get_contents( LOGINFILE ) );
+if( isset($_GET["action"]) && $_GET["action"] == "deletetree" && isset($_POST["deletetree"]) ) {
+	
+		error_log("Action deletetree");
+		$tree = explode(".", $_POST["deletetree"]);
+		if( $tree[0] == 'CONFIG' ) {
+			// Changing base config
+			$forkobj = $cfg;
+		} elseif ( $tree[0] == 'MQTT' ) {
+			// Changing mqtt config
+			$forkobj = $mqttcfg;
+		} else {
+			error_log("Neither CONFIG nor MQTT was sent");
+		}
+		
+		// Only set values if $forkobj really exists
+		if( is_object($forkobj) ) {		
+			for ( $fork = 1; $fork < count($tree)-1; $fork++ ) {
+				error_log("fork $fork is " . $tree[$fork]);
+				if( !is_object($forkobj->{$tree[$fork]}) ) {
+					// Tree element does not exist
+					error_log("Tree element " . $tree[$fork] . " does not exist. Stopping");
+					unset($forkobj);
+					break;
+				}
+				$forkobj = $forkobj->{$tree[$fork]};
+			}
+			if (is_object($forkobj)) {
+				error_log("Deleting tree element " . $tree[count($tree)-1]);
+				unset ($forkobj->{$tree[count($tree)-1]});
+			} else {
+				error_log("Nothing deleted.");
+			}
+		}	
+	
+	// error_log("cfg data now:\n" . var_export($cfg, true));
+	// error_log("mqtt data now:\n" . var_export($mqttcfg, true));
+	
+	file_put_contents( $configfile, json_encode($cfg, JSON_PRETTY_PRINT) );
+	file_put_contents( $mqttconfigfile, json_encode($mqttcfg, JSON_PRETTY_PRINT) );
+	
+	// Run aWATTar script
+	shell_exec("php " . LBPBINDIR."/awattar.php");
+	
+	$jsonstr = json_encode( array( 'CONFIG' => $cfg, 'MQTT' => $mqttcfg));
+	sendresponse( 200, "application/json", $jsonstr );
+	
+	exit(1);
 }
-
-if ( isset($_GET["action"]) && $_GET["action"] == "getbattery" ) {
-	$battfilename = TMPPREFIX . "batt_" . $_GET["vin"];
-	if (empty($_GET["vin"]) || !file_exists( $battfilename ) ) {
-		sendresponse ( 500, "application/json", '{ "error" : "Could not query battery data" }' );
-	}
-	sendresponse ( 200, "application/json", file_get_contents( $battfilename ) );
-}
-
-if ( isset($_GET["action"]) && $_GET["action"] == "getconditionlast" ) {
-	$condfilename = TMPPREFIX . "cond_" . $_GET["vin"];
-	shell_exec("php $lbphtmlauthdir/ze.php action=conditionlast vin=" . $_GET["vin"]);
-	if ( ! file_exists($condfilename) ) {
-		sendresponse ( 500, "application/json", '{ "error" : "Could not query air-condition data" }' );
-	}
-	sendresponse ( 200, "application/json", file_get_contents( $condfilename ) );
-}
-
 
 
 sendresponse ( 501, "application/json",  '{ "error" : "No supported action given." }' );
+
 exit(1);
 
-// $configjson = file_get_contents(CONFIGFILE);
-// if( !empty($configjson) or !empty( json_decode($configjson) ) ) {
-	// echo $configjson;
-// } else {
-	// echo "{}";
-// }
 
+// function generateNew($array, $keys, $currentIndex, $value)
+    // {
+        // if ($currentIndex == count($keys) - 1)
+        // {
+            // $array[$keys[$currentIndex]] = $value;
+        // }
+        // else
+        // {
+            // if (!isset($array[$keys[$currentIndex]]))
+            // {
+                // $array[$keys[$currentIndex]] = array();
+            // }
 
-function generateNew($array, $keys, $currentIndex, $value)
-    {
-        if ($currentIndex == count($keys) - 1)
-        {
-            $array[$keys[$currentIndex]] = $value;
-        }
-        else
-        {
-            if (!isset($array[$keys[$currentIndex]]))
-            {
-                $array[$keys[$currentIndex]] = array();
-            }
+            // $array[$keys[$currentIndex]] = generateNew($array[$keys[$currentIndex]], $keys, $currentIndex + 1, $value);
+        // }
 
-            $array[$keys[$currentIndex]] = generateNew($array[$keys[$currentIndex]], $keys, $currentIndex + 1, $value);
-        }
-
-        return $array;
-    }
+        // return $array;
+    // }
 
 
 function sendresponse( $httpstatus, $contenttype, $response = null )

@@ -179,6 +179,10 @@ function price_stats($pricing)
 	$medianprice = null;
 	$helper_total = null;
 	$helper_count = 0;
+	$daily_spread = null;
+	$diff_to_median = null;
+	$diff_to_average = null;
+	
 
 	foreach ($pricing->data as $price) {
 
@@ -214,7 +218,9 @@ function price_stats($pricing)
 	LOGINF("Median price is  $medianprice");
 	LOGINF("Lowest price is  $lowestprice");
 	LOGINF("Highest price is $highestprice");
- 
+	$daily_spread = $highestprice - $lowestprice;
+	$diff_to_median = $currentprice - $medianprice;
+	$diff_to_average = $currentprice - $averageprice;
 	// Price thresholds
 	$threshold = 0;
 	$price_ranking = null;
@@ -235,7 +241,11 @@ function price_stats($pricing)
 	$result_dataset['price']['low'] = $lowestprice;
 	$result_dataset['price']['high'] = $highestprice;
 	$result_dataset['price']['ranking'] = $price_ranking;
-
+	$result_dataset['price']['spread'] = $daily_spread;
+	$result_dataset['price']['diff2median'] = $diff_to_median;
+	$result_dataset['price']['diff2average'] = $diff_to_average;
+	
+	
 }
 
 // 

@@ -263,23 +263,21 @@ $mqtt_installed = LBSystem::plugindata('mqttgateway') ? true : false;
 	
 		<div style="padding: 0px 0px 20px 0px;"></div>
 	
-<!--		<div class="lb_flex-container MQTT">
-			<div	class="lb_flex-item-label">
-			</div>
-			<div	class="lb_flex-item-spacer"></div>
-			<div	class="lb_flex-item">
-			<a href="javascript:saveMQTT();" id="btnsavemqtt" class="ui-btn ui-corner-all ui-shadow ui-btn-b ui-btn-icon-left ui-icon-check" 
-						data-transition="flow"><?=$L["MQTT.BUTTON_SAVE"]?></a>
-			<div class="hint" id="mqtt_hint">&nbsp;</div>
-			</div>
-			<div	class="lb_flex-item-spacer"></div>
-			<div	class="lb_flex-item-help hint">
-			</div>
-			<div	class="lb_flex-item-spacer"></div>
-		</div>
--->
 
 	<!-- MQTT End -->	
+
+<!-- Loxone Template area -->
+<div class="wide">Loxone Vorlagen</div>
+<p>Siehe die Datensatzbeschreibung im Wiki. Die Adviser-Vorlagen findest du direkt im Advisor pro Gerät.</p>
+
+<div style="display:flex;align-items:center;justify-content:center;">
+<button class="ui-btn ui-btn-icon-right button_templates" id="tmpl_date" data-inline="true" data-vitemplate="date">Date Vorlage</button>
+<button class="ui-btn ui-btn-icon-righ button_templates" id="tmpl_price" data-inline="true" data-vitemplate="price">Price Vorlage</button>
+<button class="ui-btn ui-btn-icon-right button_templates" id="tmpl_prices" data-inline="true" data-vitemplate="prices">Prices Vorlage</button>
+<button class="ui-btn ui-btn-icon-right button_templates" id="tmpl_threshold" data-inline="true" data-vitemplate="threshold">Threshold Vorlage</button>
+</div>
+<!-- Loxone Template area End -->
+
 
 </form>
 <!-- End of form -->
@@ -335,6 +333,12 @@ $( document ).ready(function() {
 	
 	$("#MQTTUseMQTTGateway, #country").click(function(){ viewhide(); });
 	$("#saveapply").click(function(){ saveapply(); });
+	$(".button_templates").click(function(){ 
+		template = $(this).data("vitemplate");
+		console.log("VI Template", template);
+		saveapply( action="template", template ); 
+	});
+	
 	$("#saveapply").blur(function(){ 
 		$("#savemessages").html("");
 	});
@@ -387,7 +391,7 @@ function formFill()
 	
 }
 
-function saveapply() 
+function saveapply(action="save", template="" ) 
 {
 	$("#savemessages").html("Submitting...");
 	$("#savemessages").css("color", "grey");
@@ -417,6 +421,16 @@ function saveapply()
 		mqttconfig = data.MQTT;
 		
 		formFill();
+		
+		// Send Loxone Template if requested
+		if( action == "template" ) {
+			deviceName = template;
+			console.log("Template", template, "devicename", deviceName);
+			window.location.href="gettemplate.php?template="+deviceName;
+		}
+		
+		
+		
 	})
 	.fail(function( error, textStatus, errorThrown ) {
 		console.log("Fail:", error, textStatus, errorThrown);

@@ -193,6 +193,7 @@ LBWeb::lbfooter();
 		<div style="display:flex;align-items:center;justify-content:center;">
 			<button class="ui-btn ui-btn-icon-left ui-icon-delete" id="delete_#DEVICEUID" data-inline="true">Gerät löschen</button>&nbsp;
 			<button class="ui-btn ui-btn-icon-left ui-icon-check" id="save_#DEVICEUID" data-inline="true">Änderungen speichern</button>
+			<button class="ui-btn ui-btn-icon-left ui-icon-action button_templates" id="tmpl_#DEVICEUID" data-inline="true">Loxone Geräte-Vorlage</button>
 		</div>
 		<div style="text-align:center;" id="messages_#DEVICEUID"></div>
 		
@@ -388,7 +389,7 @@ function createDeviceBlock(deviceUid)
 	
 	$("#save_"+deviceUid).click(function(){ saveapply(deviceUid); });
 	$("#delete_"+deviceUid).click(function(){ saveapply(deviceUid, "delete"); });
-	
+	$("#tmpl_"+deviceUid).click(function(){ saveapply(deviceUid, "template"); });
 }
 
 /* Create a day line (0-23) from template */
@@ -419,6 +420,7 @@ function saveapply(deviceUid, action="save")
 	// Depending on the action, send different data to the server
 	switch (action) {
 		// Save all data of deviceUid
+		case "template":
 		case "save":
 			var posturl = "ajax-handler.php?action=saveconfig";
 			
@@ -459,6 +461,13 @@ function saveapply(deviceUid, action="save")
 		mqttconfig = data.MQTT;
 		
 		formFill();
+		
+		// Send Loxone Template if requested
+		if( action == "template" ) {
+			deviceName = 'advise/' + $("#CONFIG\\.adviser\\."+deviceUid+"\\.devicename").val();
+			console.log("Template deviceUid", deviceUid, "devicename", deviceName);
+			window.location.href="gettemplate.php?template="+deviceName;
+		}
 	})
 	.fail(function( error, textStatus, errorThrown ) {
 		console.log("Fail:", error, textStatus, errorThrown);
@@ -467,6 +476,8 @@ function saveapply(deviceUid, action="save")
 		
 	});
 }
+	
+
 
 /* A simple is_enabled function as known from LoxBerry's Perl and PHP SDK */
 function is_enabled( checkVal ) 

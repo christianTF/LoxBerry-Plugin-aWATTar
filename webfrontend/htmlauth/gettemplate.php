@@ -20,6 +20,7 @@ foreach ($argv as $arg) {
 
 // Destination template
 $desttemplate = $_GET["template"];
+$desttemplate = rtrim($desttemplate, '/') . '/';
 
 // Generate human-readable name from $desttemplate
 $templatename = rtrim($desttemplate, '/');

@@ -1,6 +1,7 @@
 <?php
 
 require_once "loxberry_web.php";
+require_once "loxberry_io.php";
 require_once LBPBINDIR . "/defines.php";
 
 $navbar[1]['active'] = True;
@@ -16,8 +17,8 @@ LBWeb::lbheader($template_title, $helplink, $helptemplate);
 
 
 // Check if MQTT Gateway is installed
-$mqtt_installed = LBSystem::plugindata('mqttgateway') ? true : false;
-
+$mqttcred = mqtt_connectiondetails();
+$mqtt_installed = !empty($mqttcred['brokerhost']) ? true : false;
 
 ?>
 
@@ -89,6 +90,8 @@ $mqtt_installed = LBSystem::plugindata('mqttgateway') ? true : false;
 
 </div>
 
+<!--
+
 <div class="lb_flex-container country" style="display:none;">
 	<div	class="lb_flex-item-label">
 		<label for="token">Token</label>
@@ -103,6 +106,8 @@ $mqtt_installed = LBSystem::plugindata('mqttgateway') ? true : false;
 	</div>
 	<div	class="lb_flex-item-spacer"></div>
 </div>
+
+-->
 
 <div class="lb_flex-container">
 	<div	class="lb_flex-item-label">
@@ -173,7 +178,7 @@ $mqtt_installed = LBSystem::plugindata('mqttgateway') ? true : false;
 			</div>
 			<div	class="lb_flex-item-spacer"></div>
 			<div	class="lb_flex-item">
-				<span id="mqtt_onverviewlink"><a href="/admin/plugins/mqttgateway/index.cgi?form=topics" target="_blank">MQTT Gateway Incoming Overview</a></span>
+				<span id="mqtt_onverviewlink"><a href="/admin/system/mqtt-gateway.cgi?form=incoming" target="_blank">MQTT Gateway Incoming Overview</a></span>
 			</div>
 			<div	class="lb_flex-item-spacer"></div>
 			<div	class="lb_flex-item-help hint">
@@ -186,7 +191,7 @@ $mqtt_installed = LBSystem::plugindata('mqttgateway') ? true : false;
 ?>
 
 		<div class="lb_flex-container">
-			Das MQTT Gateway ist nicht installiert. 
+			Das MQTT Gateway ist nicht verfügbar. 
 		</div>
 
 <?php
@@ -439,9 +444,6 @@ function saveapply(action="save", template="" )
 		
 	});
 }
-
-
-
 </script>
 
 

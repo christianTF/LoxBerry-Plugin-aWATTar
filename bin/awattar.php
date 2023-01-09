@@ -37,7 +37,7 @@ if(!empty($options['delay'])) {
 
 $result_dataset = array();
 
-$countries = array ( "AT" => "https://api.awattar.com/v1/marketdata",
+$countries = array ( "AT" => "https://api.awattar.at/v1/marketdata",
 					 "DE" => "https://api.awattar.de/v1/marketdata"
 );
 
